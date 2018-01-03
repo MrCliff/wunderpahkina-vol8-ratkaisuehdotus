@@ -7,32 +7,51 @@ import Data.List
 import qualified Data.Map.Strict as Map
 import System.IO
 
+import Data.Time.Clock
+
 
 maxRowLength = 80
+inputFile = "alastalon_salissa.txt"
 outputFile = "alastalon_salissa_lyhennetty.txt"
 
 main :: IO ()
 main = do
   -- let ?enc = UTF8
-  alastalo <- readFile "alastalon_salissa.txt"
+  alastalo <- readFile inputFile
 
   let result = jarjestaUudelleen alastalo
   writeFile outputFile result
   -- putStrLn result
 
 
+bench :: IO () -> IO ()
+bench action = do
+  start <- getCurrentTime
+  action
+  end <- getCurrentTime
+
+  putStrLn ("Action took: " ++ show (diffUTCTime end start))
+
+
 v1 :: IO ()
 v1 = do
-  -- let ?enc = UTF8
-  alastalo <- readFile "alastalon_salissa.txt"
+  inputHandle <- openFile inputFile ReadMode
+  hSetEncoding inputHandle utf8
+  alastalo <- hGetContents inputHandle
 
   let result = jarjestaUudelleen1 alastalo
-  putStrLn result
+  
+  outputHandle <- openFile outputFile WriteMode
+  hSetEncoding outputHandle utf8
+  hPutStr outputHandle result
+  hClose outputHandle
+
+  -- putStrLn result
 
 
 v2 :: IO ()
 v2 = do
-  inputHandle <- openFile "alastalon_salissa.txt" ReadMode
+  inputHandle <- openFile inputFile ReadMode
   hSetEncoding inputHandle utf8
   alastalo <- hGetContents inputHandle
 
@@ -67,19 +86,30 @@ buildLines map
     -- buildLines' empty (_, line) = line
     buildLines' map (lineLen, line)
       | map == Map.empty = line
-      | otherwise = case Map.lookupLE (maxRowLength - (lineLen + spaceLen)) map of
-                      Nothing -> line ++ ("\n" ++ buildLines' map (0, ""))
-                      Just (wordLen, (word:others)) -> buildLines' newMap (newLen, newLine)
-                        where
-                          newMap = if others == []
-                                   then Map.delete wordLen map
-                                   else Map.adjust tail wordLen map
-                          newLen = wordLen + spaceLen + lineLen
-                          newLine = word ++ (space ++ line)
-      where
-        space = if lineLen == 0 then "" else " "
-        spaceLen = if lineLen == 0 then 0 else 1
+      | otherwise = let
+          space = if lineLen == 0 then "" else " "
+          spaceLen = length space
+          maxWordLen = maxRowLength - (lineLen + spaceLen)
+          in case Map.lookupLE maxWordLen map of
+          -- in case findNextWord maxWordLen map of
+               Nothing -> line ++ ("\n" ++ buildLines' map (0, ""))
+               Just (wordLen, (word:others)) -> buildLines' newMap (newLen, newLine)
+                 where
+                   newMap = if others == []
+                            then Map.delete wordLen map
+                            else Map.adjust tail wordLen map
+                   newLen = wordLen + spaceLen + lineLen
+                   newLine = word ++ (space ++ line)
       
+findNextWord :: Int -> Map.Map Int [String] -> Maybe (Int, [String])
+findNextWord maxWordLen map = case Map.lookupLE maxWordLen map of
+                                Nothing -> Nothing
+                                Just result@(wordLen, words) -> if maxWordLen - wordLen == shortestWordLen
+                                                                then findNextWord (wordLen - shortestWordLen) map
+                                                                else Just result
+                                  where
+                                    (shortestWordLen, _) = Map.findMin map
+
 
       -- | newLen < maxRowLength = buildLines' updatedMap (newLen, newLine)
       -- | newLen == maxRowLength = newLine ++ "\n" ++ buildLines' updatedMap (0, "")

@@ -2,12 +2,12 @@ name:                the-shortest-edition
 version:             0.1.0.0
 -- synopsis:
 -- description:
-homepage:            https://github.com/githubuser/the-shortest-edition#readme
+-- homepage:
 license:             BSD3
 license-file:        LICENSE
-author:              Author name here
+author:              Joonatan Kallio
 maintainer:          example@example.com
-copyright:           2017 Author name here
+copyright:           2017 Joonatan Kallio
 category:            Web
 build-type:          Simple
 cabal-version:       >=1.10

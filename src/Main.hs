@@ -21,6 +21,10 @@ main = do
   hClose outputHandle
 
 
+{-
+Reorganizes the words in the given String to fit to lines of fixed
+length as tightly as possible.
+-}
 reorganize :: String -> String
 reorganize = buildLines . foldr toMap Map.empty . words
   where
@@ -32,6 +36,11 @@ reorganize = buildLines . foldr toMap Map.empty . words
         insertWord (Just xs) = Just (word:xs)
 
 
+{-
+Builds the lines of fixed length from the words in the given Map. The
+Map should have word length as a key and a list of words of the same
+length as a value.
+-}
 buildLines :: Map.Map Int [String] -> String
 buildLines map
   | map == Map.empty = ""
